@@ -7,13 +7,12 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
+// If ProgressDialog is to be used, you'll need its import:
+// import android.app.ProgressDialog;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -22,12 +21,11 @@ import com.google.firebase.auth.FirebaseAuth;
 
 public class login extends AppCompatActivity {
 
-    Button button;
+    Button button, logSingupBut; // Added logSingupBut declaration
     EditText email, password;
     FirebaseAuth auth;
-    String emailPattern =  "[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+";
-    android.app.ProgressDialog progressDialog;
-
+    String emailPattern = "[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+";
+    // android.app.ProgressDialog progressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,53 +33,95 @@ public class login extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_login);
 
-        auth= FirebaseAuth.getInstance();
-        button = button.findViewById(R.id.logButton);
-        email = email.findViewById(R.id.editTextLogEmail);
-        password = password.findViewById(R.id.editTextLogPassword);
+        auth = FirebaseAuth.getInstance();
 
+        button = findViewById(R.id.logButton); // Your existing login button
+        email = findViewById(R.id.editTextLogEmail);
+        password = findViewById(R.id.editTextLogPassword);
+        logSingupBut = findViewById(R.id.logSingupBut); // Initialize the Signup button - REPLACE R.id.logSingupBut WITH YOUR ACTUAL ID
+
+        // --- Check if login button and fields are found (Good Practice) ---
+        if (button == null) {
+            Toast.makeText(this, "Error: Login button (logButton) not found.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        if (email == null) {
+            Toast.makeText(this, "Error: Email field (editTextLogEmail) not found.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        if (password == null) {
+            Toast.makeText(this, "Error: Password field (editTextLogPassword) not found.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        // --- End of check for login button and fields ---
+
+
+        // --- Check if Signup button is found (Crucial for its functionality) ---
+        if (logSingupBut == null) {
+            Toast.makeText(this, "Error: Signup button (logSingupBut) not found. Check ID in XML and findViewById.", Toast.LENGTH_LONG).show();
+            // You might not want to 'return' here if the login functionality should still work
+            // but the signup button will definitely not work.
+        }
+        // --- End of check for Signup button ---
+
+
+        // OnClickListener for the LOGIN button
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String Email = email.getText().toString();
-                String pass = password.getText().toString();
+                String emailInput = email.getText().toString().trim();
+                String passInput = password.getText().toString();
 
-                if((TextUtils.isEmpty(Email))){
-                    Toast.makeText(login.this, "Enter The Email", Toast.LENGTH_SHORT).show();
-                }else if((TextUtils.isEmpty(pass))){
-                    Toast.makeText(login.this, "Enter The Password", Toast.LENGTH_SHORT).show();
+                if (TextUtils.isEmpty(emailInput)) {
+                    email.setError("Enter The Email");
+                    email.requestFocus();
+                    return;
+                }
+                if (TextUtils.isEmpty(passInput)) {
+                    password.setError("Enter The Password");
+                    password.requestFocus();
+                    return;
+                }
+                if (!emailInput.matches(emailPattern)) {
+                    email.setError("Enter a valid Email address");
+                    email.requestFocus();
+                    return;
+                }
+                if (passInput.length() < 6) {
+                    password.setError("Password must be at least 6 characters long");
+                    password.requestFocus();
+                    return;
+                }
 
-                }else if(!Email.matches(emailPattern)){
-                    email.setError("Give Proper Email");
-                }else if(pass.length()<6){
-                    password.setError("Need more than 6 character long");
-                    Toast.makeText(login.this, "Password needs to be more than six character long", Toast.LENGTH_SHORT).show();
-                }else{
-                    auth.signInWithEmailAndPassword(Email,pass).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-                        @Override
-                        public void onComplete(@NonNull Task<AuthResult> task) {
-                            if(task.isSuccessful()){
-                                try{
+                auth.signInWithEmailAndPassword(emailInput, passInput)
+                        .addOnCompleteListener(login.this, new OnCompleteListener<AuthResult>() {
+                            @Override
+                            public void onComplete(@NonNull Task<AuthResult> task) {
+                                if (task.isSuccessful()) {
                                     Intent intent = new Intent(login.this, MainActivity.class);
                                     startActivity(intent);
                                     finish();
-
-                                }catch(Exception e){
-                                    Toast.makeText(login.this,e.getMessage(), Toast.LENGTH_SHORT).show();
-
+                                } else {
+                                    Toast.makeText(login.this, "Authentication failed: " + task.getException().getMessage(),
+                                            Toast.LENGTH_LONG).show();
                                 }
-                            }else{
-                                Toast.makeText(login.this, task.getException().getMessage(),Toast.LENGTH_SHORT).show();
                             }
-                        }
-                    });
-
-                }
-
-
-
+                        });
             }
         });
 
+        // OnClickListener for the SIGNUP button
+        // Ensure logSingupBut is not null before setting the listener
+        if (logSingupBut != null) {
+            logSingupBut.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    // Action to open the Registration page
+                    Intent intent = new Intent(login.this, registration.class); // Ensure registration.class is your registration Activity
+                    startActivity(intent);
+                    // Optional: finish(); // if you want to close the login page when going to registration
+                }
+            });
+        }
     }
 }
